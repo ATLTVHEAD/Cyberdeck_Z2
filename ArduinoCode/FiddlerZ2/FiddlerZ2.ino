@@ -2,9 +2,18 @@
 // created 7/7/2022
 // FiddlerZ2 code for an arduino nano rp2040 connect and an MCP23017
 //  for reading in a chorded keyboard array
+//
+//PURPOSE: send out button 
+//  
+//Features:
+//    -single and multi button press (B1+B2)
 
+
+
+////////////////////////////////////////////////////////////////
 
 #include <Adafruit_MCP23X17.h>
+#include "ButtonBouncer.h"
 
 #define BUTTON_PIN_1 1   // MCP23XXX pin used for interrupt
 #define BUTTON_PIN_2 28   // MCP23XXX pin used for interrupt
@@ -16,46 +25,89 @@ byte oldState = LOW;
 
 Adafruit_MCP23X17 mcp;
 
+#define THUMBSTICK_BUTTONS 5
+#define NUM_MCP_BUTTONS 16
+
+EmaButton buttons[NUM_MCP_BUTTONS] = {
+  {0,0,false,false,128,128,true},
+  {1,0,false,false,128,128,true},
+  {2,0,false,false,128,128,true},
+  {3,0,false,false,128,128,true},
+  {4,0,false,false,128,128,true},
+  {5,0,false,false,128,128,true},
+  {6,0,false,false,128,128,true},
+  {7,0,false,false,128,128,true},
+  {8,0,false,false,128,128,true},
+  {9,0,false,false,128,128,true},
+  {10,0,false,false,128,128,true},
+  {11,0,false,false,128,128,true},
+  {12,0,false,false,128,128,true},
+  {13,0,false,false,128,128,true},
+  {14,0,false,false,128,128,true},
+  {15,0,false,false,128,128,true},
+};
+
+EmaButton2 buttons2[NUM_MCP_BUTTONS] = {
+  {0,0,false,false,128,128,true},
+  {1,0,false,false,128,128,true},
+  {2,0,false,false,128,128,true},
+  {3,0,false,false,128,128,true},
+  {4,0,false,false,128,128,true},
+  {5,0,false,false,128,128,true},
+  {6,0,false,false,128,128,true},
+  {7,0,false,false,128,128,true},
+  {8,0,false,false,128,128,true},
+  {9,0,false,false,128,128,true},
+  {10,0,false,false,128,128,true},
+  {11,0,false,false,128,128,true},
+  {12,0,false,false,128,128,true},
+  {13,0,false,false,128,128,true},
+  {14,0,false,false,128,128,true},
+  {15,0,false,false,128,128,true},
+};
+
+
 void setup() {
   Serial.begin(9600);
-  //while (!Serial);
   Serial.println("MCP23xxx Interrupt Test!");
 
-  // uncomment appropriate mcp.begin
   if (!mcp.begin_I2C()) {
-  //if (!mcp.begin_SPI(CS_PIN)) {
     Serial.println("Error.");
     while (1);
   }
 
-  // configure MCU pin that will read INTA/B state
-  pinMode(INT_PIN_1, INPUT);
-  attachInterrupt(digitalPinToInterrupt(INT_PIN_1), blink, CHANGE);
-
-  // OPTIONAL - call this to override defaults
-  // mirror INTA/B, active drive, signaled with a LOW
-  mcp.setupInterrupts(true, true, LOW);
-
-  // configure button pin for input with pull up
-  mcp.pinMode(BUTTON_PIN_1, INPUT_PULLUP);
-  mcp.pinMode(BUTTON_PIN_2, INPUT_PULLUP);
-  
-  // enable interrupt on button_pin
-  mcp.setupInterruptPin(BUTTON_PIN_1, CHANGE);
-  mcp.setupInterruptPin(BUTTON_PIN_2, CHANGE);
+  for(int i=0;i<NUM_MCP_BUTTONS;i++){
+    mcp.pinMode(buttons[i].pin, INPUT_PULLUP);
+  }
 
   Serial.println("Looping...");
 }
 
 void loop() {
-  delay(500);
-  if(state != oldState){
-    Serial.println(mcp.getLastInterruptPin());
-    Serial.println(state);
-  }
- oldState = state;
+  readMcp();
 }
 
-void blink() {
-  state = !state;
+void readMcp(){
+  for(int i=0; i< NUM_MCP_BUTTONS; i++){
+    if(buttons[i].isMcp){
+      buttons[i].ema = (0.25 * mcp.digitalRead(buttons[i].pin) * 128) + (buttons[i].oldEma * 0.75);
+      if(buttons[i].ema <=51){
+        buttons[i].currentState = true;
+      }
+      else if (buttons[i].ema >= 77){
+        buttons[i].currentState = false;
+      }
+      buttons[i].oldEma = buttons[i].ema;
+    }
+    else{
+      buttons[i].ema = (0.25 * digitalRead(buttons[i].pin) * 128) + (buttons[i].oldEma * 0.75);
+      if(buttons[i].ema <=51){
+        buttons[i].currentState = true;
+      }
+      else if (buttons[i].ema >= 77){
+        buttons[i].currentState = false;
+      }
+      buttons[i].oldEma = buttons[i].ema;
+    }
+  }
 }
