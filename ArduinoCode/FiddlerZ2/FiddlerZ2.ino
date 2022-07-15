@@ -29,41 +29,22 @@ Adafruit_MCP23X17 mcp;
 #define NUM_MCP_BUTTONS 16
 
 EmaButton buttons[NUM_MCP_BUTTONS] = {
-  {0,0,false,false,128,128,true},
-  {1,0,false,false,128,128,true},
-  {2,0,false,false,128,128,true},
-  {3,0,false,false,128,128,true},
-  {4,0,false,false,128,128,true},
-  {5,0,false,false,128,128,true},
-  {6,0,false,false,128,128,true},
-  {7,0,false,false,128,128,true},
-  {8,0,false,false,128,128,true},
-  {9,0,false,false,128,128,true},
-  {10,0,false,false,128,128,true},
-  {11,0,false,false,128,128,true},
-  {12,0,false,false,128,128,true},
-  {13,0,false,false,128,128,true},
-  {14,0,false,false,128,128,true},
-  {15,0,false,false,128,128,true},
-};
-
-EmaButton2 buttons2[NUM_MCP_BUTTONS] = {
-  {0,0,false,false,128,128,true},
-  {1,0,false,false,128,128,true},
-  {2,0,false,false,128,128,true},
-  {3,0,false,false,128,128,true},
-  {4,0,false,false,128,128,true},
-  {5,0,false,false,128,128,true},
-  {6,0,false,false,128,128,true},
-  {7,0,false,false,128,128,true},
-  {8,0,false,false,128,128,true},
-  {9,0,false,false,128,128,true},
-  {10,0,false,false,128,128,true},
-  {11,0,false,false,128,128,true},
-  {12,0,false,false,128,128,true},
-  {13,0,false,false,128,128,true},
-  {14,0,false,false,128,128,true},
-  {15,0,false,false,128,128,true},
+  {0,0,false,false,false,128,128,true},
+  {1,0,false,false,false,128,128,true},
+  {2,0,false,false,false,128,128,true},
+  {3,0,false,false,false,128,128,true},
+  {4,0,false,false,false,128,128,true},
+  {5,0,false,false,false,128,128,true},
+  {6,0,false,false,false,128,128,true},
+  {7,0,false,false,false,128,128,true},
+  {8,0,false,false,false,128,128,true},
+  {9,0,false,false,false,128,128,true},
+  {10,0,false,false,false,128,128,true},
+  {11,0,false,false,false,128,128,true},
+  {12,0,false,false,false,128,128,true},
+  {13,0,false,false,false,128,128,true},
+  {14,0,false,false,false,128,128,true},
+  {15,0,false,false,false,128,128,true},
 };
 
 
@@ -84,30 +65,19 @@ void setup() {
 }
 
 void loop() {
-  readMcp();
+  buttonHandler();
 }
 
-void readMcp(){
+void buttonHandler(){
   for(int i=0; i< NUM_MCP_BUTTONS; i++){
     if(buttons[i].isMcp){
-      buttons[i].ema = (0.25 * mcp.digitalRead(buttons[i].pin) * 128) + (buttons[i].oldEma * 0.75);
-      if(buttons[i].ema <=51){
-        buttons[i].currentState = true;
-      }
-      else if (buttons[i].ema >= 77){
-        buttons[i].currentState = false;
-      }
-      buttons[i].oldEma = buttons[i].ema;
+      buttons[i].rawState = mcp.digitalRead(buttons[i].pin);
     }
     else{
-      buttons[i].ema = (0.25 * digitalRead(buttons[i].pin) * 128) + (buttons[i].oldEma * 0.75);
-      if(buttons[i].ema <=51){
-        buttons[i].currentState = true;
-      }
-      else if (buttons[i].ema >= 77){
-        buttons[i].currentState = false;
-      }
-      buttons[i].oldEma = buttons[i].ema;
+      buttons[i].rawState = digitalRead(buttons[i].pin);
     }
+    buttons[i].calcEma();
+    buttons[i].setbuttonState();
+    buttons[i].setOldEma();
   }
 }

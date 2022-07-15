@@ -16,23 +16,31 @@
 
 #include <inttypes.h>
 
-struct EmaButton {
-  const uint8_t pin;
-  uint32_t numberKeyPresses;
-  bool currentState;
-  bool previousState;
-  int ema;
-  int oldEma;
-  bool isMcp;
-};
-
-class EmaButton2{
+class EmaButton{
   public:
     const uint8_t pin;
     uint32_t numberKeyPresses;
+    bool rawState;
     bool currentState;
     bool previousState;
     int ema;
     int oldEma;
     bool isMcp;
+
+    void calcEma(){
+      ema = (0.25 * rawState * 128) + (oldEma * 0.75);
+    }
+
+    void setOldEma(){
+      oldEma = ema;
+    }
+
+    void setbuttonState(){
+      if(ema <=51){
+        currentState = true;
+      }
+      else if (ema >= 77){
+        currentState = false;
+      }
+    }
 };
