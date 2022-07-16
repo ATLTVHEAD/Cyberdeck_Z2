@@ -27,24 +27,34 @@ Adafruit_MCP23X17 mcp;
 
 #define THUMBSTICK_BUTTONS 5
 #define NUM_MCP_BUTTONS 16
+const uint8_t TOTAL_BUTTONS = NUM_MCP_BUTTONS + THUMBSTICK_BUTTONS;
+
+struct Glove{
+  //Glove glove;
+  bool glove_ready;
+  bool bpressed[NUM_MCP_BUTTONS];
+  bool breleased[NUM_MCP_BUTTONS];
+};
+
+Glove glove;
 
 EmaButton buttons[NUM_MCP_BUTTONS] = {
-  {0,0,false,false,false,128,128,true},
-  {1,0,false,false,false,128,128,true},
-  {2,0,false,false,false,128,128,true},
-  {3,0,false,false,false,128,128,true},
-  {4,0,false,false,false,128,128,true},
-  {5,0,false,false,false,128,128,true},
-  {6,0,false,false,false,128,128,true},
-  {7,0,false,false,false,128,128,true},
-  {8,0,false,false,false,128,128,true},
-  {9,0,false,false,false,128,128,true},
-  {10,0,false,false,false,128,128,true},
-  {11,0,false,false,false,128,128,true},
-  {12,0,false,false,false,128,128,true},
-  {13,0,false,false,false,128,128,true},
-  {14,0,false,false,false,128,128,true},
-  {15,0,false,false,false,128,128,true},
+  {0,0,false,false,false,false,128,128,true},
+  {1,0,false,false,false,false,128,128,true},
+  {2,0,false,false,false,false,128,128,true},
+  {3,0,false,false,false,false,128,128,true},
+  {4,0,false,false,false,false,128,128,true},
+  {5,0,false,false,false,false,128,128,true},
+  {6,0,false,false,false,false,128,128,true},
+  {7,0,false,false,false,false,128,128,true},
+  {8,0,false,false,false,false,128,128,true},
+  {9,0,false,false,false,false,128,128,true},
+  {10,0,false,false,false,false,128,128,true},
+  {11,0,false,false,false,false,128,128,true},
+  {12,0,false,false,false,false,128,128,true},
+  {13,0,false,false,false,false,128,128,true},
+  {14,0,false,false,false,false,128,128,true},
+  {15,0,false,false,false,false,128,128,true},
 };
 
 
@@ -61,14 +71,23 @@ void setup() {
     mcp.pinMode(buttons[i].pin, INPUT_PULLUP);
   }
 
+  glove.glove_ready = false;
+
+  for(int i =0; i<NUM_MCP_BUTTONS; i++){
+    glove.bpressed[i] = false;
+    glove.breleased[i] = false;
+  }
+
   Serial.println("Looping...");
 }
 
 void loop() {
-  buttonHandler();
+  buttonUpdater();
+  gloveUpdater();
+  chordingConstructor();
 }
 
-void buttonHandler(){
+void buttonUpdater(){
   for(int i=0; i< NUM_MCP_BUTTONS; i++){
     if(buttons[i].isMcp){
       buttons[i].rawState = mcp.digitalRead(buttons[i].pin);
@@ -79,5 +98,45 @@ void buttonHandler(){
     buttons[i].calcEma();
     buttons[i].setbuttonState();
     buttons[i].setOldEma();
+  }
+}
+
+void gloveUpdater(){
+  for(int i=0; i< NUM_MCP_BUTTONS; i++){
+    if(buttons[i].changedState){
+      if(buttons[i].rose()){
+        glove.breleased[i]= true; 
+        Serial.print(buttons[i].pin);
+        Serial.println(" rose.");
+      }
+      else if(buttons[i].fell()){
+        glove.bpressed[i] = true;
+        glove.breleased[i]= false; 
+        Serial.print(buttons[i].pin);
+        Serial.println(" fell.");
+      }
+    }
+  }
+  for (int i = 0; i < NUM_MCP_BUTTONS; i++)  {
+    if(glove.bpressed[i] != glove.breleased[i]){
+      glove.glove_ready=false;
+      break;
+    }
+    else if(glove.bpressed[i] != false){glove.glove_ready=true;}
+  }
+}
+
+void chordingConstructor(){
+  if(glove.glove_ready==true){
+    Serial.println("Glove is ready"); 
+    Serial.print("[");
+    for(int i=0; i<NUM_MCP_BUTTONS; i++){
+      Serial.print(glove.breleased[i]);
+      Serial.print(", ");
+      glove.bpressed[i] = false;
+      glove.breleased[i] = false;
+    }
+    Serial.println("]");
+    glove.glove_ready=false;
   }
 }

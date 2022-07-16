@@ -23,6 +23,7 @@ class EmaButton{
     bool rawState;
     bool currentState;
     bool previousState;
+    bool changedState;
     int ema;
     int oldEma;
     bool isMcp;
@@ -35,6 +36,7 @@ class EmaButton{
       oldEma = ema;
     }
 
+    //checks if the ema is below/above the thresholds
     void setbuttonState(){
       if(ema <=51){
         currentState = true;
@@ -42,5 +44,23 @@ class EmaButton{
       else if (ema >= 77){
         currentState = false;
       }
+      //did the current state change? 
+      // if so set a changed state flag
+      if(currentState != previousState){
+        changedState = true;
+        previousState = currentState;
+      }
+      else{changedState = false;}
+    }
+
+    //did the button previously rise? 
+    bool rose(){
+      return changedState && !currentState;
+    }
+
+    //did the button previously fall?
+    bool fell(){
+      return changedState && currentState;
     }
 };
+
