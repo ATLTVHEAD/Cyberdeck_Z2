@@ -16,6 +16,18 @@
 
 #include <inttypes.h>
 
+#define THUMBSTICK_BUTTONS 5
+#define NUM_MCP_BUTTONS 16
+const uint8_t TOTAL_BUTTONS = NUM_MCP_BUTTONS + THUMBSTICK_BUTTONS;
+//#define TOTAL_BUTTONS 21
+
+struct Glove{
+  //Glove glove;
+  bool glove_ready;
+  bool bpressed[TOTAL_BUTTONS];
+  bool breleased[TOTAL_BUTTONS];
+};
+
 class EmaButton{
   public:
     const uint8_t pin;
