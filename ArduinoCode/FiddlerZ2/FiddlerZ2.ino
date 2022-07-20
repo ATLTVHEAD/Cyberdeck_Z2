@@ -23,6 +23,7 @@
 
 Adafruit_MCP23X17 mcp;
 
+
 Glove glove;
 
 EmaButton buttons[TOTAL_BUTTONS] = {
@@ -48,6 +49,8 @@ EmaButton buttons[TOTAL_BUTTONS] = {
   {9,0,false,false,false,false,128,128,false},
   {8,0,false,false,false,false,128,128,false},
 };
+
+int mode = 0;
 
 
 void setup() {
@@ -77,8 +80,20 @@ void setup() {
 void loop() {
   buttonUpdater();
   gloveUpdater();
-  chordingCompare();
+  if(glove.glove_ready==true){
+    modeSetter();
+    switch(mode){
+      case 1:
+        yield();
+        break;
+      default:
+        chordingCompare();
+        break;
+    }
+    gloveReseter();
+  }
 }
+//-------------------------------------------------------------------------------
 
 void buttonUpdater(){
   for(int i=0; i< TOTAL_BUTTONS; i++){
@@ -94,19 +109,26 @@ void buttonUpdater(){
   }
 }
 
+void gloveReseter(){
+  for(int i=0; i<TOTAL_BUTTONS; i++){
+    //Serial.print(", ");
+    glove.bpressed[i] = false;
+    glove.breleased[i] = false;
+  }
+  //Serial.println("]");
+  glove.glove_ready=false;
+
+}
+
 void gloveUpdater(){
   for(int i=0; i< TOTAL_BUTTONS; i++){
     if(buttons[i].changedState){
       if(buttons[i].rose()){
-        glove.breleased[i]= true; 
-        //Serial.print(buttons[i].pin);
-        //Serial.println(" rose.");
+        glove.breleased[i]= true;
       }
       else if(buttons[i].fell()){
         glove.bpressed[i] = true;
-        glove.breleased[i]= false; 
-        //Serial.print(buttons[i].pin);
-        //Serial.println(" fell.");
+        glove.breleased[i]= false;
       }
     }
   }
@@ -120,17 +142,25 @@ void gloveUpdater(){
 }
 
 void chordingCompare(){
-  if(glove.glove_ready==true){
-    Serial.println("Glove is ready");
-    //Serial.print("[");
-    if(glove.breleased == letter1){Serial.println("Letter1");}
-    for(int i=0; i<TOTAL_BUTTONS; i++){
-      //Serial.print(glove.breleased[i]);
-      //Serial.print(", ");
-      glove.bpressed[i] = false;
-      glove.breleased[i] = false;
-    }
-    //Serial.println("]");
-    glove.glove_ready=false;
+  Serial.println("Glove is ready");
+  //Serial.print("[");
+  int gloveInt = buttonsToInt(glove.bpressed);
+  if(gloveInt - buttonsToInt(_a) == 0){
+    Serial.println("a");
   }
+  else if(gloveInt - buttonsToInt(_b) == 0){
+    Serial.println("b");
+  }
+}
+
+int buttonsToInt(bool bols[]){
+  int recivedID = 0;
+  for(int i=0; i<NUM_MCP_BUTTONS; i++){
+    recivedID |= bols[i] << i;
+  }
+  return recivedID;
+}
+
+void modeSetter(){
+  yield();
 }
