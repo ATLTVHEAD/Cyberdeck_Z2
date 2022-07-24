@@ -13,11 +13,11 @@ import board
 # Initialize the I2C bus:
 sda_pin = board.SDA
 scl_pin = board.SCL
+mouse_pins = [board.D8, board.D9, board.D10, board.D11, board.D12]
 
-glove = Fiddler.Fiddler(scl_pin,sda_pin)
-
+glove = Fiddler.Fiddler(scl_pin, sda_pin, 16, mouse_pins)
 
 # Now loop through glove functions
 while True:
-    glove.updateButtons()
-    glove.testButtons()
+    glove.updateFiddler()
+    glove.testTotalButtons()
