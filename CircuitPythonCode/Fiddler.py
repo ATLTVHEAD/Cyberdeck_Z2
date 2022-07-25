@@ -27,7 +27,9 @@ class Fiddler:
         self.mouse = Mousez(self._mPins)
 
     def updateFiddler(self):
-        self.keyboard.updateKeyboard()
+        if(self.keyboard.updateKeyboard()):
+            print(self.keyboard._kChord)
+            self.keyboard.cleanupChord()
         self.mouse.updateMouse()
 
     def testTotalButtons(self):
@@ -54,13 +56,14 @@ class Fiddler:
             if switch.long_press and switch.short_count == 1:
                 print("That's a long double press mouse!")
 
-    # Figure out Chording Next
-
 
 class Keyboardz:
     _kPins = 0
     _pins = list()
     _kButtons = list()
+    _kChord = list()
+    _kPressed = list()
+    keyboard_ready = False
 
     def __init__(self, MPC, kPins):
         self._kPins = kPins
@@ -72,6 +75,8 @@ class Keyboardz:
         print("setting Keyboard pins")
         for i in range(self._kPins):
             self._pins.append(self._mcp.get_pin(i))
+            self._kChord.append(False)
+            self._kPressed.append(False)
         for pin in self._pins:
             pin.direction = digitalio.Direction.INPUT
             pin.pull = digitalio.Pull.UP 
@@ -82,8 +87,35 @@ class Keyboardz:
             self._kButtons.append(Button(pin))
 
     def updateKeyboard(self):
-        for _button in self._kButtons:
+        for ind, _button in enumerate(self._kButtons):
             _button.update()
+            #This is where Double presses would need to be counted for updating, instead of bools compare ints? 
+            if(_button.fell):
+                self._kPressed[ind] = True
+                self._kChord[ind] = False
+            if(_button.rose):
+                self._kChord[ind] = True
+        #This method would need to change to allow for double presses, instead of bools compare ints? 
+        self.isChordReady()
+        return self.keyboard_ready
+
+    #This method would need to change to allow for double presses, instead of bools compare ints? 
+    def isChordReady(self):
+        for ind in range(self._kPins):
+            if(self._kPressed[ind] != self._kChord[ind]):
+                self.keyboard_ready = False
+                break
+            elif(self._kPressed[ind] != False):
+                self.keyboard_ready = True
+                
+    #This method would need to change to allow for double presses, instead of bools compare ints? 
+    def cleanupChord(self):
+        self.keyboard_ready = False
+        for ind in range(self._kPins):
+            self._kPressed[ind] = False
+            self._kChord[ind] = False
+        
+        
 
 
 
