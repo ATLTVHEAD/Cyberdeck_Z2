@@ -16,6 +16,7 @@ from adafruit_lsm6ds.lsm6dsox import LSM6DSOX
 class Fiddler:
     _kPins = 0
     _mPins = list()
+    mode = 0
 
     def __init__(self, scl_pin, sda_pin, kPins, mPins):
         self._kPins = kPins
@@ -31,6 +32,19 @@ class Fiddler:
             print(self.keyboard._kChord)
             self.keyboard.cleanupChord()
         self.mouse.updateMouse()
+    
+    def setMode(self):
+        if(self.mouse._mButtons[0].long_press):
+            self.mode = self.mode + 1
+            if(self.mode>4):
+                self.mode = 0
+
+    def main(self):
+        self.setMode()
+        if(self.mode == 0):
+            self.testTotalButtons()
+        else:
+            print("Mode = {}".format(self.mode))
 
     def testTotalButtons(self):
         for ind, switch in enumerate(self.keyboard._kButtons):
@@ -44,17 +58,7 @@ class Fiddler:
                 print("Short Press Count  keyboardPin" + str(ind) + " =", switch.short_count)
             if switch.long_press and switch.short_count == 1:
                 print("That's a long double press keyboard!")
-        for ind, switch in enumerate(self.mouse._mButtons):
-            if switch.rose:
-                print('Just released mouse pin '+ str(ind))
-            if switch.long_press:
-                print('Long Press mouse pin '+ str(ind))
-                print("Acceleration: X:%.2f, Y: %.2f, Z: %.2f m/s^2" % (self.sensor.acceleration))
-                print("Gyro X:%.2f, Y: %.2f, Z: %.2f radians/s" % (self.sensor.gyro))
-            if switch.short_count != 0:
-                print("Short Press Count mouse Pin" + str(ind) + " =", switch.short_count)
-            if switch.long_press and switch.short_count == 1:
-                print("That's a long double press mouse!")
+        self.mouse.testMouse()
 
 
 class Keyboardz:
@@ -95,6 +99,7 @@ class Keyboardz:
                 self._kChord[ind] = False
             if(_button.rose):
                 self._kChord[ind] = True
+            
         #This method would need to change to allow for double presses, instead of bools compare ints? 
         self.isChordReady()
         return self.keyboard_ready
@@ -129,7 +134,6 @@ class Mousez:
         self.setMPins()
         self.setMouseButtons()
 
-
     def setMPins(self):
         print("setting Mouse pins")
         for digitalButton in self._mPins:
@@ -146,3 +150,14 @@ class Mousez:
     def updateMouse(self):
         for _button in self._mButtons:
             _button.update()
+    
+    def testMouse(self):
+        for ind, switch in enumerate(self._mButtons):
+            if switch.rose:
+                print('Just released mouse pin '+ str(ind))
+            if switch.long_press:
+                print('Long Press mouse pin '+ str(ind))
+            if switch.short_count != 0:
+                print("Short Press Count mouse Pin" + str(ind) + " =", switch.short_count)
+            if switch.long_press and switch.short_count == 1:
+                print("That's a long double press mouse!")
