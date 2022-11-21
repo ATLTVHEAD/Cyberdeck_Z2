@@ -39,7 +39,10 @@ class Fiddler:
     def updateFiddler(self):
         if(self.keyboard.updateKeyboard()):
             print(self.keyboard._kChord)
-            print(json.dumps({'chord': self.keyboard._kChord}))
+            self.s.connect(self.socketaddr, conntype=self.esp.UDP_MODE)
+            paket = bytearray(json.dumps({'chord': self.keyboard._kChord}))
+            self.s.send(paket)
+            self.s.close()
             
             self.keyboard.cleanupChord()
         self.mouse.updateMouse()
@@ -79,15 +82,16 @@ class Fiddler:
 
         # create the socket
         socket.set_interface(self.esp)
-        socketaddr = socket.getaddrinfo(secrets.HOST, secrets.PORT)[0][4]
+        self.socketaddr = socket.getaddrinfo(secrets.HOST, secrets.PORT)[0][4]
         self.s = socket.socket(type=socket.SOCK_DGRAM)
 
         self.s.settimeout(secrets.TIMEOUT)
 
         print("Sending")
-        self.s.connect(socketaddr, conntype=self.esp.UDP_MODE)
+        self.s.connect(self.socketaddr, conntype=self.esp.UDP_MODE)
         packet = bytearray(json.dumps({'chord': 253, 'test': [3,4,True]}))
         self.s.send(packet)
+        self.s.close()
 
 
 class Keyboardz:
