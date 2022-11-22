@@ -14,9 +14,11 @@ import digitalio
 from adafruit_debouncer import Button
 from adafruit_mcp230xx.mcp23017 import MCP23017
 from adafruit_lsm6ds.lsm6dsox import LSM6DSOX
-import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 from adafruit_esp32spi import adafruit_esp32spi
-
+from adafruit_esp32spi import adafruit_esp32spi_wifimanager
+import adafruit_esp32spi.adafruit_esp32spi_socket as socket
+import adafruit_minimqtt.adafruit_minimqtt as MQTT
+import neopixel
 
 
 class Fiddler:
@@ -33,17 +35,14 @@ class Fiddler:
         self.sensor = LSM6DSOX(self.i2c)
         self.keyboard = Keyboardz(self.mcp, self._kPins)
         self.mouse = Mousez(self._mPins)
+        self.statusLight = neopixel.NeoPixel(board.D7, 1, brightness=0.2)
         self.setWiFiPins()
         self.connectAndTestWiFi()
 
     def updateFiddler(self):
         if(self.keyboard.updateKeyboard()):
             print(self.keyboard._kChord)
-            self.s.connect(self.socketaddr, conntype=self.esp.UDP_MODE)
-            paket = bytearray(json.dumps({'chord': self.keyboard._kChord}))
-            self.s.send(paket)
-            self.s.close()
-            
+            self.mqtt_client.publish("/cdb3/data",json.dumps({'chord': self.keyboard._kChord}))
             self.keyboard.cleanupChord()
         self.mouse.updateMouse()
     
@@ -72,26 +71,38 @@ class Fiddler:
         #  uses the secondary SPI connected through the ESP32
         self.spi = busio.SPI(board.SCK1, board.MOSI1, board.MISO1)
         self.esp = adafruit_esp32spi.ESP_SPIcontrol(self.spi, self.esp32_cs, self.esp32_ready, self.esp32_reset)
-    
+        self.wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(self.esp,secrets.secrets_stuff,self.statusLight)
+
     def connectAndTestWiFi(self):
-        # connect to wifi AP
-        self.esp.connect(secrets.secrets_stuff)
+        # connect to wifi
+        self.wifi.connect()
+        # Initialize MQTT interface with the esp interface
+        MQTT.set_socket(socket, self.esp)
+        # Set up a MiniMQTT Client
+        self.mqtt_client = MQTT.MQTT(broker=secrets.secrets_mqtt["broker"], username=secrets.secrets_mqtt["user"], password=secrets.secrets_mqtt["pass"], port=secrets.secrets_mqtt["port"])
+        # Setup the callback methods above
+        self.mqtt_client.on_connect = self.mqttConnected
+        self.mqtt_client.on_disconnect = self.disconnected
+        self.mqtt_client.on_message = self.message
+        # Connect the client to the MQTT broker.
+        self.mqtt_client.connect()
 
-        # test for connectivity to server
-        print("Server ping:", self.esp.ping(secrets.HOST), "ms")
 
-        # create the socket
-        socket.set_interface(self.esp)
-        self.socketaddr = socket.getaddrinfo(secrets.HOST, secrets.PORT)[0][4]
-        self.s = socket.socket(type=socket.SOCK_DGRAM)
+    def mqttConnected(self,_client,_userdata,_flags,_rc):
+        print("Connected To MQTT Broker")
+        _client.subscribe("/feeds/testfeed")
 
-        self.s.settimeout(secrets.TIMEOUT)
+    def disconnected(self,client, userdata, rc):
+        # This method is called when the client is disconnected
+        print("Disconnected from MQTT Broker!")
 
-        print("Sending")
-        self.s.connect(self.socketaddr, conntype=self.esp.UDP_MODE)
-        packet = bytearray(json.dumps({'chord': 253, 'test': [3,4,True]}))
-        self.s.send(packet)
-        self.s.close()
+    def message(self,client, topic, message):
+        """Method callled when a client's subscribed feed has a new
+        value.
+        :param str topic: The topic of the feed with a new value.
+        :param str message: The new value
+        """
+        print("New message on topic {0}: {1}".format(topic, message))
 
 
 class Keyboardz:

@@ -21,5 +21,9 @@ glove = Fiddler.Fiddler(scl_pin, sda_pin, keyboard_pin_number, mouse_pins)
 
 # Now loop through glove functions
 while True:
+    try:
+        glove.mqtt_client.loop()
+    except (glove.MQTT.MMQTTException) as e:
+        print(e)
     glove.updateFiddler()
     #glove.main()
